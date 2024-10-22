@@ -112,7 +112,7 @@ exports.createUser = async (req, res) => {
 };
 
 
-exports.sendVerification = async (req, res) => {
+exports.createNewPassword = async (req, res) => {
   const { email, verificationToken, newPassword, confirmPassword } = req.body;
 
    if (newPassword !== confirmPassword) {
@@ -124,7 +124,6 @@ exports.sendVerification = async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "Invalid verification token or email." });
     }
-
      const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     user.isVerified = true; 

@@ -18,9 +18,9 @@ router.delete("/delete/:id", authController.DeleteUser);
 router.post("/create_project",authenticateJWT, validateProjectFields, projectController.createProject);
 router.post("/assign_project",authenticateJWT, validateAssignProject,projectController.assignProject);
 router.get("/assigned_projects",authenticateJWT , projectController.getAssignedProjects);
-router.get('/search', authenticateJWT,projectController.searchProjects);
+router.get('/searchProjects', authenticateJWT,projectController.searchProjects);
 router.post('/createuser',authenticateJWT, createRoles.createUser);
-router.post("/send-verification", createRoles.sendVerification );
+router.post("/createNewPassword", createRoles.createNewPassword );
 
 
 module.exports = router;

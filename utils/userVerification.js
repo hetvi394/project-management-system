@@ -10,17 +10,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
- const sendVerificationEmail = async (email, verificationToken) => {
+ const sendVerificationEmailPassword = async (email, verificationToken) => {
   const verificationUrl = `${process.env.BASE_URL}/api/send-verification?token=${verificationToken}`;
 
   const mailOptions = {
     from: process.env.EMAIL_USER,   
     to: email,
-    subject: "Email Verification",
-    html: `<p>Please verify your email by clicking on this link:</p><a href="${verificationUrl}">Verify Email</a>`,
+    subject: "Set Your Password",
+    html: `<p>Please Enter new password on this link:</p><a href="${verificationUrl}">Verify Email</a>`,
   };
 
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendVerificationEmail };
+module.exports = { sendVerificationEmailPassword };
