@@ -1,0 +1,21 @@
+//login
+{
+  "email": "riya@gmail.com",
+  "password": "444"
+}
+
+//createnewps
+{
+    "email": "riya@gmail.com",
+    "newPassword": "444",
+    "confirmPassword": "444"
+
+}
+
+//register
+ {
+    "username":"riya",
+    "email": "riya@gmail.com", 
+    "password":"123",
+    "roleId" : 3
+ }
