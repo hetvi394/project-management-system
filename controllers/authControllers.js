@@ -61,6 +61,12 @@ exports.login = async (req, res) => {
 };
 
 
+//if user isverify true ho or password bhi ho to login hone do 
+//if user isverify nahi hai or password hai to usse  verification email send karo 
+ 
+
+
+
 exports.verifyToken = async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ message: "No token provided" });
