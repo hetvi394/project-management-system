@@ -4,6 +4,8 @@ const { generateToken, verifyToken } = require("../utils/jwttoken");
 const { sendVerificationEmail } = require("../utils/sendmail");
 const jwt = require("jsonwebtoken");
 const { sendVerificationEmailPassword } = require("../utils/userVerification");
+const mailto = require("../utils/userVerification");
+const balanceleave = require("../model/balanceModel")
 
 exports.register = async (req, res) => {
   const { username, email, password, roleId } = req.body;
@@ -20,10 +22,20 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       isVerified: false,
       roleId,
-    });
-    await user.save();
+     });
 
-    const verificationToken = generateToken(user._id, "60s");
+    const token = generateToken(user._id);
+    user.token = token;
+
+     await user.save();
+
+      Balanceleave = new balanceleave({  
+      userId: user._id,
+      totalBalance: 12
+    })
+      await Balanceleave.save();
+
+    const verificationToken = generateToken(user._id, "1h");
     await sendVerificationEmail(user, verificationToken);
 
     return res
@@ -37,8 +49,9 @@ exports.register = async (req, res) => {
   }
 };
 
+
 exports.verifyEmail = async (req, res) => {
-  const { email } = req.query;
+  const { email,token } = req.query;
   if (!email) return res.status(400).json({ message: "No email provided" });
 
   try {
@@ -56,6 +69,7 @@ exports.verifyEmail = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -145,6 +159,31 @@ exports.DeleteUser = async (req, res) => {
   }
 };
 
+exports.ForgetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+     const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist." });
+    }
+
+     const verificationToken = generateToken({ email });
+
+     user.resetPasswordToken = verificationToken;
+    user.resetPasswordExpires = Date.now() + 3600000;  
+
+    await user.save();  
+
+     await mailto.sendVerificationEmailPassword(email, verificationToken);
+
+    res.status(200).json({ message: 'Password reset email sent.' });
+  } catch (error) {
+    res.status(500).json({ message: 'An error occurred. Please try again later.' });
+  }
+};
+
+  
 // const User = require("../model/user");
 // const bcrypt = require("bcryptjs");
 // const dotenv = require("dotenv");

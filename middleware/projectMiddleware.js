@@ -17,7 +17,7 @@ const validateProjectFields = (req, res, next) => {
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid or missing 'status' field" });
     }
-  
+
     next();
   };
   
