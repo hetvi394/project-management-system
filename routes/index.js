@@ -14,7 +14,7 @@ const multer = require("multer");
 const uploads = multer({ dest: "uploads/" });
 const leaveController = require("../controllers/leaveControllers");
 const balanceleave = require("../controllers/BalanceConroller")
-
+const subscribeController = require("../controllers/subscriptionControllers");
 
 router.post("/register", authController.register);
 router.get("/verify_email", authController.verifyEmail);
@@ -66,5 +66,10 @@ router.delete("/deleteLeaveRequest/:id",authenticateJWT, leaveController.deleteL
 
  router.put("/updateBalance/:userId", balanceleave.updateBalanceLeave)
 router.get("/getBalance", balanceleave.getBalanceLeave)
+
+
+router.post("/subscribe", subscribeController.subscribe)
+router.post("/updateSubscription", subscribeController.updateSubscription)
+
 
 module.exports = router;
