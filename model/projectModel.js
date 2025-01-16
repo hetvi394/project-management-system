@@ -17,7 +17,7 @@ const ProjectSchema = new mongoose.Schema({
     type: String,
     enum: ["ongoing", "completed", "not started"],
     required: true,
-  },
-});
+  }
+},{ timestamps: true });
 
 module.exports = mongoose.model("Project", ProjectSchema);

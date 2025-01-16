@@ -1,20 +1,17 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true,
     unique: true,
   },
   email: {
     type: String,
-    required: true,
     unique: true,
   },
   password: {
     type: String,
-    required: true,
+    required: false,
   },
   isVerified: {
     type: Boolean,
@@ -26,7 +23,22 @@ const UserSchema = new mongoose.Schema({
   },
   roleId: {
     type: Number,
-  }
-},{ timestamps: true });
- 
+    default: 3,
+  },
+  token: {
+    type: String,
+   },
+}, { timestamps: true });  
+// // Middleware to update the 'updatedAt' timestamp before saving
+// UserSchema.pre("save", function (next) {
+//   this.updatedAt = Date.now();
+//   next();
+// });
+
+// // Middleware to update 'updatedAt' before running updateOne
+// UserSchema.pre("updateOne", function (next) {
+//   this.set({ updatedAt: Date.now() });
+//   next();
+// });
+
 module.exports = mongoose.model("User", UserSchema);

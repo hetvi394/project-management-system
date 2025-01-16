@@ -2,6 +2,11 @@ const Project = require("../model/projectModel");
 const User = require("../model/userModel");
 const UserProject = require("../model/userProjectModel");
 const Roles = require("../utils/roles");
+const Task = require ("../model/taskModel");
+const AssignedTask = require('../model/assignTaskModel');  
+const mailto = require("../utils/sendmail");
+const { sendTaskStatusUpdateEmail } = require("../utils/sendmail");  
+
 
 exports.createProject = async (req, res) => {
   const { name, description, duration, status } = req.body;
@@ -25,42 +30,144 @@ exports.createProject = async (req, res) => {
   }
 };
 
+
 exports.assignProject = async (req, res) => {
-  const { projectid, userid } = req.body;
-  const { roleId } = req.user;  
+  const { id, userid, type, action } = req.body; 
+  const { roleId } = req.user;
 
   try {
-    
+    if (!id || !userid || !action) {
+      return res.status(400).json({ message: "ID, User ID, and Action are required" });
+    }
+
     if (roleId === Roles.admin) {
-    } else if (roleId === Roles.manager) {
+     } else if (roleId === Roles.manager) {
       if (roleId !== Roles.manager && roleId !== Roles.employee) {
-       return res.status(403).json({ message: "As a manager, you can only create manager or employee roles." });
-     }
-   } else if (roleId === Roles.employee) {
+        return res.status(403).json({ message: "As a manager, you can only create manager or employee roles." });
+      }
+    } else if (roleId === Roles.employee) {
       return res.status(403).json({ message: "You do not have permission to create a user." });
-   } else {
-     return res.status(400).json({ message: "Invalid role ID." });
-   }
-    const project = await Project.findById(projectid);
-    if (!project) return res.status(404).json({ message: "Project not found" });
+    } else {
+      return res.status(400).json({ message: "Invalid role ID." });
+    }
 
-    const user = await User.findById(userid);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (action === "assign") {
+      if (type === 1) {  
+        const project = await Project.findById(id);
+        if (!project) return res.status(404).json({ message: "Project not found" });
 
-    const userProject = new UserProject({ userid, projectid });
-    await userProject.save();
+        const user = await User.findById(userid);
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(201).json({
-      message: "Project successfully assigned to user",
-      Project: project,
-      user: user,
-    });
+        const userProject = new UserProject({ userid, projectid: id });  
+        await userProject.save();
+
+         await mailto.sendTaskAssignedEmail(user.email, project);
+
+        return res.status(201).json({
+          message: "Project successfully assigned to user",
+          project,
+          user,
+        });
+
+      } else if (type === 2) {  
+        const task = await Task.findById(id); 
+        if (!task) return res.status(404).json({ message: "Task not found" });
+
+        const user = await User.findById(userid);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const assignedTask = new AssignedTask({ userid, taskid: id });
+        await assignedTask.save();
+
+         await mailto.sendTaskAssignedEmail(user.email, task);
+
+        return res.status(201).json({
+          message: "Task successfully assigned to user",
+          task,
+          user,
+        });
+      } else {
+        return res.status(400).json({ message: "Invalid type provided." });
+      }
+
+    } else if (action === "unassign") {
+      if (type === 1) {  
+        const userProject = await UserProject.findOneAndDelete({ userid, projectid: id });
+        if (!userProject) return res.status(404).json({ message: "Assigned project not found" });
+
+        return res.status(200).json({ message: "Project successfully unassigned from user" });
+
+      } else if (type === 2) {  
+        const assignedTask = await AssignedTask.findOneAndDelete({ userid, taskid: id });
+        if (!assignedTask) return res.status(404).json({ message: "Assigned task not found" });
+
+        return res.status(200).json({ message: "Task successfully unassigned from user" });
+
+      } else {
+        return res.status(400).json({ message: "Invalid type provided." });
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid action provided." });
+    }
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error in assignProject:', error);
+    return res.status(500).json({ message: error.message });
   }
 };
 
-exports.getAssignedProjects = async (req, res) => {
+exports.updateAssignedTaskDates = async (req, res) => {
+  const { taskId, status } = req.body;
+
+  try {
+     const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    
+    const projectId = task.projectid;
+
+     const manager = await User.findOne({ projectId: projectId, roleId: 2 });  
+
+    if (!manager) {
+      return res.status(404).json({ message: "Manager not found for this project" });
+    }
+
+     const assignedTask = await AssignedTask.findOne({ taskid: taskId });
+    if (!assignedTask) {
+      return res.status(404).json({ message: "Assigned task not found" });
+    }
+    if (status === "InProgress" && !assignedTask.start_date) {
+      assignedTask.start_date = new Date();
+    } else if (status === "Completed" && !assignedTask.end_date) {
+      assignedTask.end_date = new Date();
+    } else if (status !== "InProgress" && status !== "Completed") {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    assignedTask.status = status;
+    await assignedTask.save();
+
+     await sendTaskStatusUpdateEmail(
+      manager.email, 
+      taskId,         
+      status 
+    );
+
+    return res.status(200).json({
+      message: "Assigned task dates updated successfully",
+      assignedTask,
+    });
+  } catch (error) {
+    console.error("Error updating assigned task dates:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+ 
+ 
+  exports.getAssignedProjects = async (req, res) => {
   try {
     const assignedProjects = await UserProject.find()
       .populate("userid", "username email")
@@ -82,6 +189,7 @@ exports.getAssignedProjects = async (req, res) => {
     });
   }
 };
+
 
 exports.searchProjects = async (req, res) => {
   const { search, sortby } = req.query;
